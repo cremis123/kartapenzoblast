@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивная карта Пензенской области</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Georgia', 'Times New Roman', serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+            padding: 20px;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            border: 1px solid #e1e5eb;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eaeaea;
+            background: linear-gradient(to right, #2c3e50, #4a6582);
+            color: white;
+            margin: -30px -30px 30px -30px;
+            padding: 30px;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 32px;
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 18px;
+            font-style: italic;
+        }
+        
+        /* Стили для бегущей строки новостей */
+        .news-ticker-container {
+            background: linear-gradient(to right, #1a2a3a, #2c3e50);
+            color: white;
+            padding: 12px 0;
+            margin: 0 -30px 25px -30px;
+            overflow: hidden;
+            position: relative;
+            border-bottom: 1px solid #34495e;
+        }
+        
+        .news-ticker-label {
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #e74c3c;
+            padding: 12px 20px;
+            font-weight: bold;
+            z-index: 5;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        }
+        
+        .news-ticker {
+            white-space: nowrap;
+            padding-left: 150px;
+            animation: ticker-scroll 30s linear infinite;
+        }
+        
+        .news-item {
+            display: inline-block;
+            padding: 0 40px;
+            font-size: 16px;
+            color: #ecf0f1;
+        }
+        
+        .news-item::before {
+            content: "•";
+            margin-right: 10px;
+            color: #3498db;
+        }
+        
+        @keyframes ticker-scroll {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+        
+        .news-ticker:hover {
+            animation-play-state: paused;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 5px;
+            border: 1px solid #e1e5eb;
+        }
+        
+        /* Остальные стили остаются без изменений */
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            background: #ffffff;
+            color: #2c3e50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.5);
+            color: #495057;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .map-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 25px;
+            border: 2px solid #d1d9e6;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #f0f4f8;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        #map-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .location-btn {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #3498db;
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        
+        .location-btn:hover {
+            background-color: #2980b9;
+            transform: translate(-50%, -50%) scale(1.4);
+        }
+        
+        .location-btn.active {
+            background-color: #27ae60;
+            transform: translate(-50%, -50%) scale(1.3);
+        }
+        
+        .location-tooltip {
+            position: absolute;
+            background-color: rgba(44, 62, 80, 0.9);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 20;
+            transform: translate(-50%, -100%);
+            margin-top: -10px;
+            font-family: 'Arial', sans-serif;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        
+        .location-btn:hover .location-tooltip {
+            opacity: 1;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background-color: #ffffff;
+            width: 90%;
+            max-width: 750px;
+            border-radius: 12px;
+            padding: 30px;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+            border: 1px solid #d1d9e6;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 32px;
+            cursor: pointer;
+            color: #95a5a6;
+            transition: all 0.3s;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+        }
+        
+        .close-btn:hover {
+            color: #e74c3c;
+            background-color: #f0f0f0;
+            transform: rotate(90deg);
+        }
+        
+        .location-info h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 15px;
+            display: flex;
+            align-items: center;
+            font-size: 28px;
+        }
+        
+        .wiki-icon {
+            margin-right: 12px;
+            color: #3366cc;
+            font-size: 28px;
+        }
+        
+        .location-info p {
+            line-height: 1.7;
+            margin-bottom: 18px;
+            font-size: 16px;
+            color: #444;
+        }
+        
+        .location-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 18px;
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px 20px;
+            color: #7f8c8d;
+        }
+        
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 35px 25px;
+            background-color: #fdf2f2;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid #e74c3c;
+        }
+        
+        .wiki-link {
+            display: inline-flex;
+            align-items: center;
+            color: #3366cc;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 10px 18px;
+            background-color: #f0f7ff;
+            border-radius: 8px;
+            transition: all 0.3s;
+            border: 1px solid #d6e4ff;
+        }
+        
+        .wiki-link:hover {
+            background-color: #e1f0ff;
+            text-decoration: underline;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .external-icon {
+            margin-left: 8px;
+            font-size: 18px;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 25px;
+            gap: 25px;
+            flex-wrap: wrap;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .legend-normal {
+            background-color: #3498db;
+        }
+        
+        .legend-active {
+            background-color: #27ae60;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        
+        .search-box {
+            padding: 12px 20px;
+            border: 2px solid #d1d9e6;
+            border-radius: 8px;
+            width: 400px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background-color: #f8f9fa;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background-color: white;
+        }
+        
+        .author-info {
+            padding: 30px;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #eaeaea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .author-info h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 26px;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .author-info p {
+            line-height: 1.7;
+            margin-bottom: 15px;
+            color: #555;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 16px;
+        }
+        
+        .university-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: linear-gradient(to right, #2c3e50, #4a6582);
+            color: white;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .university-icon {
+            margin-right: 12px;
+            font-size: 20px;
+        }
+        
+        .feedback-form {
+            padding: 30px;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            border: 1px solid #eaeaea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .feedback-form h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 26px;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #d1d9e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background-color: #f8f9fa;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background-color: white;
+        }
+        
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(to right, #2c3e50, #4a6582);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+        
+        .visitor-counter {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .counter-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        
+        .counter-label {
+            color: #6c757d;
+            font-size: 16px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            header {
+                padding: 20px;
+                margin: -20px -20px 20px -20px;
+            }
+            
+            h1 {
+                font-size: 26px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 25px;
+            }
+            
+            .location-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .author-info, .feedback-form {
+                padding: 25px 20px;
+            }
+            
+            .legend {
+                gap: 15px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .news-ticker-label {
+                position: relative;
+                display: block;
+                text-align: center;
+                margin-bottom: 5px;
+            }
+            
+            .news-ticker {
+                padding-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Интерактивная карта Пензенской области</h1>
+            <p class="subtitle">Нажмите на маркер, чтобы узнать информацию о населенном пункте из Рувики</p>
+        </header>
+        
+        <!-- Бегущая строка с новостями -->
+        <div class="news-ticker-container">
+            <div class="news-ticker-label">НОВОСТИ ПЕНЗЫ</div>
+            <div class="news-ticker" id="news-ticker">
+                <!-- Новости будут загружены через JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Навигационные вкладки -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tab-map">Карта</button>
+            <button class="tab-btn" data-tab="tab-author">Об авторе</button>
+            <button class="tab-btn" data-tab="tab-feedback">Обратная связь</button>
+        </div>
+        
+        <!-- Вкладка с картой -->
+        <div class="tab-content active" id="tab-map">
+            <div class="controls">
+                <input type="text" class="search-box" id="search-box" placeholder="Поиск населенного пункта...">
+            </div>
+            
+            <div class="map-container">
+                <img id="map-image" src="map.jpg" alt="Карта Пензенской области">
+                <!-- Кнопки будут добавлены через JavaScript -->
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color legend-normal"></div>
+                    <span>Населенный пункт</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-active"></div>
+                    <span>Выбранный пункт</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Вкладка об авторе -->
+        <div class="tab-content" id="tab-author">
+            <div class="author-info">
+                <h2>Об авторе проекта</h2>
+                <p>Проект разработан <strong>Константином Мироновым</strong>, студентом Пензенского государственного аграрного университета.</p>
+                <p>Данный проект создан с целью предоставления удобного и информативного инструмента для изучения населенных пунктов Пензенской области с использованием данных из открытых источников, таких как Русская Википедия (Рувики).</p>
+                <p>Константин увлекается веб-разработкой, картографией и изучением родного края, что и вдохновило его на создание этой интерактивной карты.</p>
+                <div class="university-badge">
+                    <span class="university-icon">🎓</span>
+                    Пензенский государственный аграрный университет
+                </div>
+            </div>
+        </div>
+        
+        <!-- Вкладка с обратной связью -->
+        <div class="tab-content" id="tab-feedback">
+            <div class="feedback-form">
+                <h2>Форма обратной связи</h2>
+                <p style="text-align: center; margin-bottom: 25px; color: #555;">Если у вас есть предложения по улучшению проекта или вы хотите сотрудничать, заполните эту форму</p>
+                
+                <form id="feedbackForm">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Ваше имя</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email для связи</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="subject">Тема сообщения</label>
+                        <select class="form-control" id="subject" name="subject" required>
+                            <option value="" disabled selected>Выберите тему</option>
+                            <option value="suggestion">Предложение по улучшению</option>
+                            <option value="collaboration">Сотрудничество</option>
+                            <option value="error">Сообщение об ошибке</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="message">Сообщение</label>
+                        <textarea class="form-control" id="message" name="message" required></textarea>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <button type="submit" class="submit-btn">Отправить сообщение</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Счетчик посещений -->
+        <div class="visitor-counter">
+            <div class="counter-label">Количество посещений этой страницы:</div>
+            <div class="counter-number" id="visit-count">0</div>
+        </div>
+    </div>
+    
+    <div class="modal" id="info-modal">
+        <div class="modal-content">
+            <span class="close-btn">×</span>
+            <div class="location-info" id="location-info">
+                <!-- Информация будет загружена динамически -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Координаты населенных пунктов (исправленные)
+        const locations = [
+            { name: "Пенза", x: 767, y: 454 },
+            { name: "Никольск (Пензенская область)", x: 1007, y: 229 },
+            { name: "Сосновоборск (Пензенская область)", x: 1083, y: 384 },
+            { name: "Кузнецк (Пензенская область)", x: 1144, y: 480 },
+            { name: "Неверкино", x: 1191, y: 615 },
+            { name: "Русский Камешкир", x: 1040, y: 558 },
+            { name: "Городище (Пензенская область)", x: 933, y: 406 },
+            { name: "Шемышейка", x: 860, y: 564 },
+            { name: "Лопатино (Пензенская область)", x: 976, y: 683 },
+            { name: "Бессоновка (Пензенская область)", x: 784, y: 384 },
+            { name: "Кондоль", x: 778, y: 589 },
+            { name: "Колышлей", x: 655, y: 648 },
+            { name: "Сердобск", x: 579, y: 758 },
+            { name: "Беково", x: 435, y: 754 },
+            { name: "Тамала", x: 322, y: 711 },
+            { name: "Белинский (город)", x: 365, y: 530 },
+            { name: "Башмаково (Пензенская область)", x: 276, y: 429 },
+            { name: "Пачелма", x: 349, y: 384 },
+            { name: "Нижний Ломов", x: 440, y: 302 },
+            { name: "Мокшан", x: 665, y: 342 },
+            { name: "Исса (Пензенская область)", x: 711, y: 171 },
+            { name: "Лунино (Пензенская область)", x: 805, y: 276 },
+            { name: "Земетчино", x: 180, y: 304 },
+            { name: "Вадинск", x: 297, y: 247 },
+            { name: "Спасск (Пензенская область)", x: 337, y: 143 },
+            { name: "Наровчат", x: 410, y: 164 },
+            { name: "Каменка", x: 525, y: 44 }
+        ];
+        
+        // DOM элементы
+        const mapContainer = document.querySelector('.map-container');
+        const modal = document.getElementById('info-modal');
+        const closeBtn = document.querySelector('.close-btn');
+        const locationInfo = document.getElementById('location-info');
+        const searchBox = document.getElementById('search-box');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const feedbackForm = document.getElementById('feedbackForm');
+        const visitCountElement = document.getElementById('visit-count');
+        const newsTicker = document.getElementById('news-ticker');
+        
+        // Функция для загрузки новостей
+        async function loadNews() {
+            try {
+                // Здесь можно подключить реальный API новостей
+                // Для демонстрации используем заглушку с новостями о Пензе
+                const newsItems = [
+                    "В Пензе открылся новый парк развлечений для детей",
+                    "Пензенская область увеличила объем сельскохозяйственной продукции на 15%",
+                    "В Пензе проходит фестиваль народных промыслов",
+                    "В Пензенской области строят новый мост через реку Сура",
+                    "В Пензе открылась выставка современного искусства",
+                    "Пензенские спортсмены завоевали 5 медалей на всероссийских соревнованиях",
+                    "В Пензе стартовал проект по благоустройству исторического центра",
+                    "Пензенская область привлекает инвестиции в агропромышленный комплекс"
+                ];
+                
+                // Добавляем новости в бегущую строку
+                newsItems.forEach(item => {
+                    const newsElement = document.createElement('div');
+                    newsElement.className = 'news-item';
+                    newsElement.textContent = item;
+                    newsTicker.appendChild(newsElement);
+                });
+                
+            } catch (error) {
+                console.error('Ошибка при загрузке новостей:', error);
+                newsTicker.innerHTML = '<div class="news-item">Новости временно недоступны</div>';
+            }
+        }
+        
+        // Счетчик посещений
+        function updateVisitCounter() {
+            let visitCount = localStorage.getItem('visitCount');
+            
+            if (!visitCount) {
+                visitCount = 0;
+            }
+            
+            visitCount = parseInt(visitCount) + 1;
+            localStorage.setItem('visitCount', visitCount);
+            visitCountElement.textContent = visitCount;
+        }
+        
+        // Переключение вкладок
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-tab');
+                
+                // Убираем активный класс у всех кнопок и контента
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Добавляем активный класс к выбранной кнопке и контенту
+                btn.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        
+        // Обработка формы обратной связи
+        feedbackForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Получаем данные формы
+            const formData = new FormData(this);
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const subject = formData.get('subject');
+            const message = formData.get('message');
+            
+            // В реальном приложении здесь был бы код для отправки данных на сервер
+            // Для демонстрации просто покажем сообщение об успехе
+            alert(`Спасибо, ${name}! Ваше сообщение отправлено. Мы свяжемся с вами по адресу ${email}.`);
+            
+            // Очищаем форму
+            this.reset();
+        });
+        
+        // Создание кнопок на карте
+        function createLocationButtons() {
+            locations.forEach(location => {
+                const btn = document.createElement('div');
+                btn.className = 'location-btn';
+                btn.dataset.name = location.name;
+                
+                // Позиционирование кнопки
+                const imgWidth = document.getElementById('map-image').naturalWidth;
+                const containerWidth = mapContainer.offsetWidth;
+                const scaleFactor = containerWidth / imgWidth;
+                
+                btn.style.left = `${location.x * scaleFactor}px`;
+                btn.style.top = `${location.y * scaleFactor}px`;
+                
+                // Добавляем всплывающую подсказку
+                const tooltip = document.createElement('div');
+                tooltip.className = 'location-tooltip';
+                tooltip.textContent = location.name.split(' (')[0]; // Убираем уточнение в скобках
+                btn.appendChild(tooltip);
+                
+                // Обработчик клика
+                btn.addEventListener('click', function() {
+                    // Убираем активный класс у всех кнопок
+                    document.querySelectorAll('.location-btn').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    
+                    // Добавляем активный класс к текущей кнопке
+                    this.classList.add('active');
+                    
+                    // Показываем информацию о населенном пункте
+                    showLocationInfo(this.dataset.name);
+                });
+                
+                mapContainer.appendChild(btn);
+            });
+        }
+        
+        // Функция для получения информации из Википедии
+        async function fetchWikipediaInfo(locationName) {
+            // Кодируем название для URL
+            const encodedName = encodeURIComponent(locationName);
+            
+            // URL для запроса к API Википедии
+            const url = `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodedName}`;
+            
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('Статья не найдена');
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Ошибка при загрузке данных:', error);
+                return null;
+            }
+        }
+        
+        // Функция для отображения информации о населенном пункте
+        async function showLocationInfo(locationName) {
+            // Показываем загрузку
+            locationInfo.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Загрузка информации из Рувики...</p>
+                </div>
+            `;
+            modal.style.display = 'flex';
+            
+            try {
+                // Получаем данные из Википедии
+                const data = await fetchWikipediaInfo(locationName);
+                
+                if (!data) {
+                    throw new Error('Не удалось загрузить информацию');
+                }
+                
+                // Формируем HTML с информацией
+                let infoHTML = `
+                    <h2>
+                        <span class="wiki-icon">📚</span>
+                        ${data.title}
+                    </h2>
+                `;
+                
+                if (data.thumbnail) {
+                    infoHTML += `<img src="${data.thumbnail.source}" alt="${data.title}" style="float: right; margin: 0 0 15px 15px; max-width: 200px; border-radius: 8px;">`;
+                }
+                
+                infoHTML += `<div style="clear: both;">${data.extract_html || data.extract}</div>`;
+                
+                // Добавляем ссылку на полную статью
+                if (data.content_urls) {
+                    infoHTML += `
+                        <a href="${data.content_urls.desktop.page}" class="wiki-link" target="_blank">
+                            Читать полную статью в Рувики
+                            <span class="external-icon">↗</span>
+                        </a>
+                    `;
+                }
+                
+                locationInfo.innerHTML = infoHTML;
+                
+            } catch (error) {
+                locationInfo.innerHTML = `
+                    <div class="error">
+                        <h2>${locationName}</h2>
+                        <p>К сожалению, не удалось загрузить информацию об этом населенном пункте из Рувики.</p>
+                        <p>Попробуйте поискать информацию в <a href="https://ru.wikipedia.org/wiki/${encodeURIComponent(locationName)}" target="_blank">Рувики</a>.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Функция для поиска населенного пункта
+        function searchLocation(query) {
+            const normalizedQuery = query.toLowerCase().trim();
+            
+            if (!normalizedQuery) {
+                // Сбрасываем поиск
+                document.querySelectorAll('.location-btn').forEach(btn => {
+                    btn.style.opacity = '1';
+                    btn.style.transform = 'translate(-50%, -50%)';
+                });
+                return;
+            }
+            
+            // Ищем совпадения
+            document.querySelectorAll('.location-btn').forEach(btn => {
+                const locationName = btn.dataset.name.toLowerCase();
+                
+                if (locationName.includes(normalizedQuery)) {
+                    btn.style.opacity = '1';
+                    btn.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                } else {
+                    btn.style.opacity = '0.3';
+                    btn.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                }
+            });
+        }
+        
+        // Закрытие модального окна
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Обработка поиска
+        searchBox.addEventListener('input', function() {
+            searchLocation(this.value);
+        });
+        
+        // Инициализация после загрузки изображения
+        window.addEventListener('load', function() {
+            createLocationButtons();
+            updateVisitCounter(); // Обновляем счетчик посещений
+            loadNews(); // Загружаем новости
+        });
+        
+        // Обработка изменения размера окна
+        window.addEventListener('resize', function() {
+            // Удаляем все кнопки
+            document.querySelectorAll('.location-btn').forEach(btn => {
+                btn.remove();
+            });
+            
+            // Создаем кнопки заново с новыми координатами
+            createLocationButtons();
+        });
+    </script>
+</body>
+</html>
